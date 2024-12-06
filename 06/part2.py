@@ -31,6 +31,7 @@ with open(file_name, "r") as file:
         return grid[x][y] == "#"
 
     res = 0
+    initial_pos = getGuardPosition()
     for i in range(m):
         for j in range(n):
             if grid[i][j] != ".":
@@ -43,16 +44,14 @@ with open(file_name, "r") as file:
             ### LOGIC START ###
             ###################
             cur_direction = UP
-            cur_pos = getGuardPosition()
-            r, c = cur_pos  # always the guard's current position!
-            initial_pos = cur_pos
-            visited = set()
+            r, c = initial_pos  # always the guard's current position!
+            # visited = set()
             obstacles_visited = set()  # (x, y, direction)
             while True:
                 # Add current position to seen set!
                 # if (r, c) not in visited or True:
                 #     grid[r][c] = 'X'
-                visited.add((r, c))
+                # visited.add((r, c))
 
                 # Get new position of guard
                 dx, dy = DIRECTION_DELTAS[cur_direction]
