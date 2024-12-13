@@ -23,11 +23,8 @@ with open(file_name, "r") as file:
 
             plant = grid[i][j]
             visited.add((i, j))
-            area, perimiter = 0, 0
-            local_visited = set([(i, j)])
-            fence_visited = set([])
+            area = 0
             corners = defaultdict(int)
-            corners_count = 0
 
             queue = deque([(i, j)])
             while len(queue) > 0:
@@ -37,67 +34,24 @@ with open(file_name, "r") as file:
                 for dx, dy in CORNER_DIRECTIONS:
                     corners[(pos_x + dx, pos_y + dy)] += 1
 
-                # for vert, horiz in [
-                #     [DOWN, RIGHT], # bottom-right corner (br)
-                #     [DOWN, LEFT],  # bottom-left  corner (bl)
-                #     [UP, LEFT],    # top-left     corner (tl)
-                #     [UP, RIGHT],   # top-right    corner (tr)
-                # ]:
-                #     dx_v, dy_v = vert
-                #     dx_h, dy_h = horiz
-
-                #     x, y = pos_x + dx_v, pos_y + dy_v
-                #     if inBounds(x, y) and grid[x][y] == plant:
-                #         # Irrelevant corner, ignore it!
-                #         continue
-                    
-                #     x, y = pos_x + dx_h, pos_y + dy_h
-                #     if inBounds(x, y) and grid[x][y] == plant:
-                #         # Irrelevant corner, ignore it!
-                #         continue
-                    
-                #     dx = (dx_v + dx_h) / 2
-                #     dy = (dy_v + dy_h) / 2
-                #     corners[(pos_x + dx, pos_y + dy)] += 1
-
                 area += 1
                 for dx, dy in DIRECTIONS:
                     x, y = pos_x + dx, pos_y + dy
-                    fence_x, fence_y = pos_x + (dx / 2), pos_y + (dy / 2)
-                    if (x, y) in visited:
-                        perimiter += grid[x][y] != plant
-                        if grid[x][y] != plant:
-                            fence_visited.add((fence_x, fence_y))
-                        continue
-
-                    if not inBounds(x, y):
-                        perimiter += 1
-                        fence_visited.add((fence_x, fence_y))
+                    if not inBounds(x, y) or (x, y) in visited:
                         continue
 
                     if grid[x][y] == plant:
                         queue.append((x, y))
-                        local_visited.add((x, y))
                         visited.add((x, y))
-                    else:
-                        perimiter += 1
-                        fence_visited.add((fence_x, fence_y))
 
-            # print(f"{plant=}, {area=}, {perimiter=}")
-            # print(f"{plant=}, {sorted(local_visited)=}")
-            # print(f"{plant=}, {sorted(fence_visited)=}")
-            # print(f"{len(fence_visited)=}, {perimiter=}\n")
-            # print(f"{plant=}")
-            count = 0 # valid corners!
+            corners_count = 0
             for key, val in corners.items():
-                assert 1 <= val <= 4
-                if val == 4:
+                # Trivial case
+                if val != 2:
+                    corners_count += val % 2
                     continue
-                if val == 1 or val == 3:
-                    count += 1
-                    continue
-
-                assert val == 2
+                
+                # assert val == 2
                 # This is a special case. Either it should increase count by 0,
                 # or by 2! That is, either it is touching twice as corners of the
                 # same fence, or twice as corners of their own fence garden corners!
@@ -105,8 +59,6 @@ with open(file_name, "r") as file:
                 # corner, for a total of two touchings, are diagonal to one another or
                 # not!
                 corner_x, corner_y = key 
-                # if key == (2.5, 2.5):
-                #     count += 2
                 plants = []
                 for dx, dy in CORNER_DIRECTIONS:
                     # round because paranoia moment :P
@@ -115,28 +67,17 @@ with open(file_name, "r") as file:
                         # on the edge, meaning they cannot be diagonal!
                         # so don't increment count :)
                         break
-                    # positions.append((x, y))
                     plants.append(grid[x][y])
-                # assert len(plants) == 4
                 if len(plants) < 4:
-                    # on the edge, meaning they cannot be diagonal!
-                    # so don't increment count :)
+                    # Again, don't increment count if on the edge
+                    # (since guaranteed to be same fence touching!)
                     continue
-                # print(f"{plants=}")
                 tl, tr, bl, br = plants
                 if tl == br or bl == tr:
-                    count += 2
-                # else:
-                #     assert tl == tr or bl == br
-                
+                    corners_count += 2
 
 
-            single_corners = {key: val for key, val in corners.items() if val % 2 == 1}
-            # print(f"{single_corners=}")
-            # print(f"{len(single_corners)=}")
-            # res += area * perimiter
-            res += area * count
-            # res += area * corners_count
+            res += area * corners_count
 
     print(f"ANSWER: {res}")
 
