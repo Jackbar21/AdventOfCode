@@ -1,11 +1,10 @@
-import heapq
-
-
-USE_TEST_DATA = True
+USE_TEST_DATA = False
 
 file_name = "./test_data.txt" if USE_TEST_DATA else "./data.txt"
 with open(file_name, "r") as file:
+    ##################################
     ### PREPARE INPUT DATA (START) ###
+    ##################################
     lines = [line.strip() for line in file.readlines()]
     data = [] # (A_data, B_data, Prize_data), where each data object is nested 2-item tuple!
     for i in range(0, len(lines), 4):
@@ -16,68 +15,129 @@ with open(file_name, "r") as file:
         a, b, prize = a.split(", "), b.split(", "), prize.split(", ")
         a = (int(a[0].split("+")[1]), int(a[1].split("+")[1]))
         b = (int(b[0].split("+")[1]), int(b[1].split("+")[1]))
-        # prize = (int(prize[0].split("=")[1]) + 10000000000000, int(prize[1].split("=")[1]) + 10000000000000)
-        prize = (int(prize[0].split("=")[1]) + 0, int(prize[1].split("=")[1]) + 0)
+        prize = (int(prize[0].split("=")[1]) + 10000000000000, int(prize[1].split("=")[1]) + 10000000000000)
         data.append((a, b, prize))
+    ################################
     ### PREPARE INPUT DATA (END) ###
+    ################################
 
-    def heuristic(pos_x, pos_y, prize_x, prize_y):
-        assert pos_x <= prize_x and pos_y <= prize_y
-        return prize_x - pos_x, prize_y - pos_y
+    def isWholeNumber(num, delta = 0.0005):
+            return abs(num - round(num)) < delta
 
     # We now have an array 'data' which contains 2-item tuples of every A, B, prize coordinates!
     res = 0
     for a, b, prize in data: 
-        print(f"{a=}, {b=}, {prize=}")
         a_dx, a_dy = a
         b_dx, b_dy = b
         prize_x, prize_y = prize
-        continue
+
+        # We have that:
+        #   (1) a_dx * A + b_dx * B == prize_x
+        #   (2) a_dy * A + b_dy * B == prize_y
+        # Where A and B are unknown, and represent our number of 
+        # 'A' and 'B' button presses, respectively
+        # a_dx * A + b_dx * B == prize_x
+        # a_dy * A + b_dy * B == prize_y
+        # <--> (a_dy * A)/b_dy + B == prize_y / b_dy
+        # <--> (b_dx)(a_dy * A)/b_dy + b_dx * B == (b_dx)(prize_y / b_dy)
+        # <--> (b_dx)(a_dy * A)/b_dy - (a_dx * A) == (b_dx)(prize_y / b_dy) - prize_x
+        # <--> A(b_dx * a_dy)/b_dy - A(a_dx) == (b_dx)(prize_y / b_dy) - prize_x
+        # <--> A((b_dx * a_dy)/b_dy - a_dx) == (b_dx)(prize_y / b_dy) - prize_x
+        # <--> A == [(b_dx)(prize_y / b_dy) - prize_x] / [(b_dx * a_dy)/b_dy - a_dx]
+        A = ((b_dx)*(prize_y / b_dy) - prize_x) / ((b_dx * a_dy)/b_dy - a_dx)
+        # Then once we know A, we know that a_dx * A + b_dx * B == prize_x, hence:
+        B = (prize_x - a_dx * A) / b_dx
         
-        # Just do simple UCS (might need A* search for part 2!)
-        # fringe = [(prize_x + prize_y, 0, 0, 0)] # (cost + heuristic, cost x, y)
-        fringe = [(0, 0, 0)] # (cost, x, y)
-        visited = set()
-        visited.add((0, 0))
-        while len(fringe) > 0:
-            # h_cost, cost, x, y = heapq.heappop(fringe)
-            cost, x, y = heapq.heappop(fringe)
-            # print(f"{cost=}, {x=}, {y=}")
-
-            # if (x, y) in visited:
-            #     continue
-            # visited.add((x, y))
-
-            # If reach gol state, we are finished!
-            if x == prize_x and y == prize_y:
-                # print(f"{cost=}")
-                res += cost
-                break
-
-            # Case 1: Press A token!
-            a_x, a_y = x + a_dx, y + a_dy
-            # If leads away from prize, can never go backwards, so ignore!
-            in_bounds = a_x <= prize_x and a_y <= prize_y
-            if in_bounds and (a_x, a_y) not in visited:
-                # new_cost = cost + 3
-                # new_h_cost = new_cost + (prize_x - a_x) + (prize_y - a_y)
-                # heapq.heappush(fringe, (new_h_cost, new_cost, a_x, a_y))
-                heapq.heappush(fringe, (cost + 3, a_x, a_y))
-                visited.add((a_x, a_y))
-            
-            # Case 2: Press B token!
-            b_x, b_y = x + b_dx, y + b_dy
-            # If leads away from prize, can never go backwards, so ignore!
-            in_bounds = b_x <= prize_x and b_y <= prize_y
-            if in_bounds and (b_x, b_y) not in visited:
-                # new_cost = cost + 1
-                # new_h_cost = new_cost + (prize_x - b_x) + (prize_y - b_y)
-                # heapq.heappush(fringe, (new_h_cost, new_cost, b_x, b_y))
-                heapq.heappush(fringe, (cost + 1, b_x, b_y))
-                visited.add((b_x, b_y))
-            
-
-
+        # We know that the values of A and B we get are the ONLY possible solutions
+        # (since we have the same number of unknowns as equations, from linear algebra!)
+        # So if their values are not whole numbers, then it's not possible to reach
+        # prize point in the context of this problem!
+        if isWholeNumber(A) and isWholeNumber(B):
+            cost = 3 * round(A) + round(B)
+            res += cost
 
     print(f"ANSWER: {res}")
 
+
+#########################################################################
+### LEFTOVER COMMENTS FROM WHEN I WAS STRUGGLING THROUGH THIS PROBLEM ###
+#########################################################################
+# Would I rather spam button A, or button B?
+# Well, it's going to depend on HOW LONG it's gonna take for me
+# to reach that insane 10 QUADRILLION distance away, with <100 steps
+# at a time! I know that for every A button press, I could have done
+# 3 B button presses. I want to get to a position where I can either:
+#   (1) Spam button A until I reach prize, or
+#   (2) Spam button B until I reach prize
+
+# For either case to be true, it must be that prize_x = c * b_dx, and prize_y = c * b_dy,
+# for some c >= 0, and similarly for A with a_dx and a_dy. Moreover, it must be that
+# b_x <= prize_x, prize_x % b_dx == 0, b_y <= prize_y, prize_y % b_dy == 0
+# And then of course, something similar for the A button.
+
+# def ucs(a, b, prize, is_goal_state): # is_goal_state(a, prize) or is_goal_state(b, prize)
+#     queue = [(0, 0, 0)] # (cost, x, y)
+
+
+# def ucs_a(a, b, prize):
+#     queue = [(0, 0, 0)]
+
+# def ucs_b(a, b, prize):
+#     queue = [(0, 0, 0)]
+
+
+# 94a + 22b = 10000000008400
+# 34a + 67b = 10000000005400
+
+# 94x + 22y = 10000000008400
+
+# A = 
+
+
+# a_dx * A + b_dx * B == prize_x
+# a_dy * A + b_dy * B == prize_y
+# <--> (a_dy * A)/b_dy + B == prize_y / b_dy
+# <--> (b_dx)(a_dy * A)/b_dy + b_dx * B == (b_dx)(prize_y / b_dy)
+# <--> (b_dx)(a_dy * A)/b_dy - (a_dx * A) == (b_dx)(prize_y / b_dy) - prize_x
+# <--> A(b_dx * a_dy)/b_dy - A(a_dx) == (b_dx)(prize_y / b_dy) - prize_x
+# <--> A((b_dx * a_dy)/b_dy - a_dx) == (b_dx)(prize_y / b_dy) - prize_x
+# <--> A == [(b_dx)(prize_y / b_dy) - prize_x] / [(b_dx * a_dy)/b_dy - a_dx]
+# Then once we know A, we know that a_dx * A + b_dx * B == prize_x, hence:
+# B == (prize_x - a_dx * A) / b_dx
+# BUT, this doesn't work, since we can get non integer-values of A and B!
+
+# Let's say I want to get to the point where I can infinitely spam the B button.
+# INCORRECT: Then that means I want to reach a point x, y such that x == c * b_dx, y == c * b_dy
+# CORRECT: Then that means I want to reach a point x, y, such that x == (prize_x - c * b_dx), y == (prize_y - c * b_dx)
+# That way, I can spam that b button as much as I like!!!
+
+# CORRECT:
+# a_dx * A + b_dx * B == (prize_x - c * b_dx), start with c == prize_x // b_dx maybe ?
+# a_dy * A + b_dy * B == (prize_y - c * b_dy), start with c == prize_y // b_dy maybe ? --> or min of above two?
+
+# We don't care what c is, as long as we achieve it, we just want to figure out A and B
+# (and then spam B the rest of the way later!)
+
+# a_dx * A + b_dx * B == (prize_x - c * b_dx)
+# a_dy * A + b_dy * B == (prize_y - c * b_dy)
+# <--> a_dx * A == prize_x - c * b_dx - b_dx * B
+# <--> a_dx * A == prize_x - (c - B) * b_dx
+# <--> a_dx * A - (c - B) * b_dx == prize_x
+# <--> a_dx * A + (B - c) * b_dx == prize_x
+# <--> a_dy * A + (B - c) * b_dy == prize_y [In similar fashion!]
+
+
+# INCORRECT:
+# a_dx * A + b_dx * B == c * b_dx
+# a_dy * A + b_dy * B == c * b_dy
+
+# We don't care what c is, as long as we achieve it, we just want to figure out A and B
+# (and then spam B the rest of the way later!)
+
+# a_dx * A + b_dx * B == c * b_dx
+# a_dy * A + b_dy * B == c * b_dy
+# <--> a_dx * A == c * b_dx - b_dx * B
+# <--> a_dx * A == (c - B) * b_dx
+# <--> a_dx * A - (c - B) * b_dx == 0
+# <--> a_dx * A + (B - c) * b_dx == 0
+# <--> a_dy * A + (B - c) * b_dy == 0 [In similar fashion!]
