@@ -12,19 +12,11 @@ with open(file_name, "r") as file:
     grid, moves = None, None
     for i, line in enumerate(lines):
         if line == "":
-            # print("TRUE")
-            # print(f"{lines[:i]=}")
-            # print(f"{lines[i+1:]=}")
             grid = [collections.deque([el for el in line]) for line in lines[:i]]
             moves = "".join(lines[i+1:])
     #########################
     ### END PARSING INPUT ###
     #########################
-
-    # print("OG GRID:")
-    # for line in grid:
-    #     print("".join(line))
-    # print()
 
     ROBOT, OBSTACLE, WALL, FREE_SPACE = "@", "O", "#", "."
     OBSTACLE_LEFT, OBSTACLE_RIGHT = "[", "]"
@@ -59,10 +51,6 @@ with open(file_name, "r") as file:
     M, N = len(grid), len(grid[0])
     def inBounds(x, y):
         return 0 <= x < M and 0 <= y < N
-    
-    # print("TRANSFORMED GRID:")
-    # for line in grid:
-    #     print("".join(line))
 
     # First, get robot's position
     robot_x, robot_y = None, None
@@ -77,11 +65,9 @@ with open(file_name, "r") as file:
 
     # Now, simulate all of the robots moves!
     for move in moves:
-        # print(f"{robot_x, robot_y=}")
         assert grid[robot_x][robot_y] == ROBOT
         assert move in move_to_direction
         dx, dy = move_to_direction[move]
-        # print(f"{move, dx, dy}")
         x, y = robot_x + dx, robot_y + dy
         assert inBounds(x, y)
         symbol = grid[x][y]
@@ -95,25 +81,14 @@ with open(file_name, "r") as file:
             continue
 
         assert symbol != FREE_SPACE
-        # if symbol == ROBOT:
-        #     print("WEIRD GRID")
-        #     print(f"{robot_x, robot_y=}, {x, y=}, {dx, dy=}")
-        #     for line in grid:
-        #         print("".join(line))
         assert symbol != ROBOT
-        # assert symbol in [OBSTACLE, WALL]
         if symbol == WALL:
             # Don't change robot's position!
             continue 
-
         assert symbol in [OBSTACLE_LEFT, OBSTACLE_RIGHT]
-        # opposite_directions = [LEFT, RIGHT] if dx == 0 else [UP, DOWN]
-        # dx1, dy1 = opposite_directions[0]
-        # dx2, dy2 = opposite_directions[1]
-        
+
         # Easy case is when we're going horizontally (i.e. dx == 0), since we can't push two boxes from one!
         # So, let's handle this case first :)
-        
         if dx == 0:
             while grid[x][y] not in [FREE_SPACE, WALL]:
                 assert grid[x][y] in [OBSTACLE_LEFT, OBSTACLE_RIGHT]
@@ -134,23 +109,15 @@ with open(file_name, "r") as file:
             # Want to make grid[x][y] go from '.' to 'O'
             assert grid[x][y] == FREE_SPACE
             grid[x][y] = obstacle # Again, this will cause the '[]' to '][' weird flipping & vice versa
-            # Want to make grid[robot_x][robot_y] go from '@' to '.'
             
             # Want to make grid[robot_x][robot_y] go from '@' to '.'
             assert grid[robot_x][robot_y] == ROBOT
             grid[robot_x][robot_y] = FREE_SPACE
-
-            # Continue, since this is only the dx == 0 case!
-            # print("NEW GRID:")
-            # for line in grid:
-            #     print("".join(line))
             
             # Loop Invariant
             robot_x, robot_y = robot_x + dx, robot_y + dy
-
             # TODO: Consider removing... FIX UP THE OBSTACLE ORIENTATIONS! -- THIS IS GOOD, BUT TAKES LINEAR TIME!!!
             tmp_x, tmp_y = robot_x + dx, robot_y + dy
-            # while grid[x][y] not in [FREE_SPACE, WALL]:
             while (tmp_x, tmp_y) != (x, y):
                 assert grid[tmp_x][tmp_y] in [OBSTACLE_LEFT, OBSTACLE_RIGHT]
                 grid[tmp_x][tmp_y] = OBSTACLE_LEFT if grid[tmp_x][tmp_y] != OBSTACLE_LEFT else OBSTACLE_RIGHT 
@@ -158,9 +125,8 @@ with open(file_name, "r") as file:
                 tmp_y += dy
                 assert inBounds(tmp_x, tmp_y)
             grid[tmp_x][tmp_y] = OBSTACLE_LEFT if grid[tmp_x][tmp_y] != OBSTACLE_LEFT else OBSTACLE_RIGHT 
-            # print("NEW GRID:")
-            # for line in grid:
-            #     print("".join(line))
+
+            # Continue, since this is only the dx == 0 case!
             continue
 
         assert dx != 0
@@ -224,15 +190,7 @@ with open(file_name, "r") as file:
         # every "visited" obstacle character as a FREE_SPACE now, and then for each position the obstacles would
         # now end up in, i.e. by a change of dx,dy, we "re-draw" that obstacle character. And then at the end, of
         # course, we need to update the robot's position as well:
-        # print("BEFORE GRID:")
-        # for line in grid:
-        #     print("".join(line))
 
-        # print("SAHSJKAHSKAHKSL")
-        # print(f"{visited=}")
-        # for (i, j) in visited:
-        #     print(f"{grid[i][j]=}, {i,j=}")
-        # exit()
         # Step 1: Make all FREE_SPACE
         for (i, j, _) in visited:
             assert grid[i][j] in [OBSTACLE_LEFT, OBSTACLE_RIGHT]
@@ -249,81 +207,8 @@ with open(file_name, "r") as file:
         grid[robot_x][robot_y] = FREE_SPACE
         grid[robot_x + dx][robot_y + dy] = ROBOT
         robot_x, robot_y = robot_x + dx, robot_y + dy
-
-        # print("AFTER GRID:")
-        # for line in grid:
-        #     print("".join(line))
-
-        # exit()
-        continue
-        
-        # if grid[obstacle_x][obstacle_y] == OBSTACLE_RIGHT:
-        #     obstacle_y -= 1
-        #     assert grid[obstacle_x][obstacle_y] == OBSTACLE_LEFT
-        # left_x, left_y, right_x, right_y = None, None, None, None
-        # if grid[obstacle_x][obstacle_y] == OBSTACLE_LEFT:
-        #     left_x, left_y = obstacle_x, obstacle_y
-        #     right_x, right_y = obstacle_x, obstacle_y + 1
-        # else:
-        #     assert grid[obstacle_x][obstacle_y] == OBSTACLE_RIGHT
-        #     left_x, left_y = obstacle_x, obstacle_y - 1
-        #     right_x, right_y = obstacle_x, obstacle_y
-        
-        
-        is_possible = True
-        queue = collections.deque([(left_x, left_y), (right_x, right_y)])
-        visited = set([(left_x, left_y), (right_x, right_y)])
-        while len(queue) > 0:
-            x, y = queue.popleft()
-            new_x, new_y = x + dx, y + dy
-            if grid[x][y] == getOppositeObstacle(grid[new_x][new_y]):
-                is_left_obstacle = grid[x][y] == OBSTACLE_LEFT
-        
-
-        break
-        exit()
-
-
-
-
-        # Below is old part 1 logic, so stop!
-        continue
-            
-        assert symbol == OBSTACLE
-        # Now, at this point, we want to check in the current direction, whether
-        # we hit an FREE_SPACE or WALL character first (could be many obstacles
-        # in between!) If a WALL character is hit first, then we cannot move the
-        # obstacles, and hence we just continue. Otherwise, we have to begin moving!
-        while grid[x][y] not in [FREE_SPACE, WALL]:
-            x += dx
-            y += dy
-            assert inBounds(x, y)
-        
-        if grid[x][y] == WALL:
-            continue
-
-        # Now consider this. We hit a free space before we hit a wall. In between the
-        # robot and this free space, there are p >= 1 obstacles in between. All we have to
-        # do, is take a sequence such as "@(O){p}." --> ".@(O){p}"
-        # ['@', 'O', ..., 'O', '.'] --> ['.', '@', 'O', ..., 'O']
-
-        # Want to make grid[x][y] go from '.' to 'O'
-        assert grid[x][y] == FREE_SPACE
-        grid[x][y] = OBSTACLE
-        # Want to make grid[robot_x][robot_y] go from '@' to '.'
-        assert grid[robot_x][robot_y] == ROBOT
-        grid[robot_x][robot_y] = FREE_SPACE
-        # Want to make grid[robot_x + dx][robot_y + dy] go from 'O' to '@'
-        assert grid[robot_x + dx][robot_y + dy] == OBSTACLE
-        grid[robot_x + dx][robot_y + dy] = ROBOT
-        
-        # Loop Invariant
-        robot_x, robot_y = robot_x + dx, robot_y + dy
         continue
 
-    # print("NEW GRID:")
-    # for line in grid:
-    #     print("".join(line))
     
     res = 0
     for i in range(M):
@@ -331,10 +216,3 @@ with open(file_name, "r") as file:
             if grid[i][j] == OBSTACLE_LEFT:
                 res += 100 * i + j
     print(f"ANSWER: {res}")
-
-
-# . [][][] .
-# . . [] . .
-
-# .  [][]  .
-# . . [] . .
