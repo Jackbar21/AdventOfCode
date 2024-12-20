@@ -39,17 +39,19 @@ with open(file_name, "r") as file:
                 x, y = i + dx, j + dy
                 if inBounds(x, y):
                     if grid[x][y] != WALL:
-                        adj_list[(i, j)].append((None, x, y))
+                        adj_list[(i, j)].append((1, None, x, y))
                         # adj_list[(i, j)].append((None, x + M, y + N))
-                        adj_list[(i + M, j + N)].append((None, x + M, y + N))
+                        adj_list[(i + M, j + N)].append((1, None, x + M, y + N))
                     
                     # No matter what, even if (x, y) is a wall, we can traverse THROUGH IT
                     # into "clonged graph". This is Vassos Hadzilacos trick from UofT ;)
                     else:
                         for delta_x, delta_y in DIRECTIONS:
                             cheat_x, cheat_y = (x + delta_x, y + delta_y)
-                            if inBounds(cheat_x, cheat_y) and grid[cheat_x][cheat_y] != WALL:
-                                adj_list[(i, j)].append(((x + M, y + N), cheat_x + M, cheat_y + N))
+                            if inBounds(cheat_x, cheat_y) and grid[cheat_x][cheat_y] != WALL and (cheat_x, cheat_y) != (i, j):
+                                # First element is the UNIQUE cheat of this path! I.e. similar to where they place
+                                # '1' and '2' in problem description :)
+                                adj_list[(i, j)].append((2, f"{x + M, y + N}-->{cheat_x + M, cheat_y + N}", cheat_x + M, cheat_y + N))
     
     # For graph G', this will represent essentially a clone of original graph,
     # but now for every path u->v, we'll introduce an edge from u->v' of cost 1,
@@ -74,7 +76,7 @@ with open(file_name, "r") as file:
     while len(fringe) > 0:
         print(f"{fringe=}")
         cost, node, cheat_node = heapq.heappop(fringe)
-        assert cheat_node is None or len(cheat_node) == 2
+        assert cheat_node is None or len(cheat_node) > 0
         # cost, node, cheat_node = fringe.popleft()
         
         if node in visited:
@@ -102,11 +104,12 @@ with open(file_name, "r") as file:
                 continue
             # visited.remove(GOAL_STATE)
         
-        for neighbor_cheat_node, neighbor_x, neighbor_y in adj_list[node]:
+        for edge_cost, neighbor_cheat_node, neighbor_x, neighbor_y in adj_list[node]:
             print(f"{neighbor_cheat_node, neighbor_x, neighbor_y=}")
             neighbor = (neighbor_x, neighbor_y)
             if neighbor not in visited:
-                edge_cost = 1 + int(neighbor_cheat_node is not None)
+                # edge_cost = 1 + int(neighbor_cheat_node is not None)
+                assert not (neighbor_cheat_node and cheat_node)
                 new_cheat_node = neighbor_cheat_node if not cheat_node else cheat_node
                 # new_cheat_node = cheat_node if edge_cost != 2 else neighbor
                 if new_cheat_node not in banned:
