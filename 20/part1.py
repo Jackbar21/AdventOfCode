@@ -27,8 +27,6 @@ with open(file_name, "r") as file:
                 end = (i, j)
     assert start is not None and end is not None
     GOAL_STATE = (end[0], end[1])
-    SHORTEST_PATH = 84 if USE_TEST_DATA else 9484
-    GOAL_COST = SHORTEST_PATH - (100 if not USE_TEST_DATA else 10)
 
     res = 0
     def ucs(grid):
@@ -37,10 +35,6 @@ with open(file_name, "r") as file:
         visited.add((start[0], start[1]))
         while len(fringe) > 0:
             cost, x, y = fringe.popleft()
-
-            # if node in visited:
-            #     continue
-            # visited.add(node)
 
             if (x, y) == GOAL_STATE:
                 return cost
@@ -54,11 +48,17 @@ with open(file_name, "r") as file:
                 ):
                     fringe.append((cost + 1, new_x, new_y))
                     visited.add((new_x, new_y))
+    SHORTEST_PATH = ucs(grid)
+    GOAL_COST = SHORTEST_PATH - (100 if not USE_TEST_DATA else 10)
 
     START_TIME = time.time()
     for i in range(M):
         for j in range(N):
             if grid[i][j] != WALL:
+                continue
+
+            # Walls on the edges are useless to check!
+            if i == 0 or i == M - 1 or j == 0 or j == N - 1:
                 continue
 
             grid[i][j] = TRACK
