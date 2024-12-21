@@ -86,6 +86,8 @@ with open(file_name, "r") as file:
             cheat_id = f"{x, y}-->{cheat_x, cheat_y}"
             if path_len > 20:
                 continue  # Invalid!
+            if cost + path_len > GOAL_COST:
+                continue # Too expensive!
             if (
                 inBounds(cheat_x, cheat_y)
                 and grid[cheat_x][cheat_y] != WALL
