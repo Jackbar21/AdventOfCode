@@ -11,19 +11,14 @@ with open(file_name, "r") as file:
 
     computers = set()
     adj_list = defaultdict(set)
-    indegrees = defaultdict(int)
     for computer1, computer2 in lines:
         adj_list[computer1].add(computer2)
         adj_list[computer2].add(computer1)
         computers.add(computer1)
         computers.add(computer2)
-        indegrees[computer1] += 1
-        indegrees[computer2] += 1
-    
-    # Turn everything into lists for convenience later (and sort cause why not hehe)!
-    nodes = sorted(computers)
-    for key in adj_list:
-        adj_list[key] = sorted(adj_list[key])
+    nodes = list(computers)
+    # print(f"{nodes=}, {len(nodes)=}")
+    # print(f"{adj_list=}")
 
     ############################################################################
     ### (START) GITHUB COPILOT GENERATED KOSARAJU'S ALGORITHM HELPER (START) ###
@@ -106,20 +101,6 @@ with open(file_name, "r") as file:
     # can start from 3, and work our way upwards up to 16 (inclusive), until we get a fail, for which we know the previous size
     # before the fail is the largest possible size CLIQUE :)
 
-    # Idea: Loop through every node (computer) in nodes, and for each node find the maximal CLIQUE that includes that node
-    # For now, we'll only do it with a specific node.
-
-    
-    def findMaximalCLIQUE(node):
-        assert node in computers
-        clique = set(node)
-        for neighbor in adj_list[node]:
-            # Want to see if neighbor belongs in the CLIQUE. This is true if and only if,
-            # in the current clique that we're building, it forms an edge with every node currently in the clique.
-            pass
-
-    
-    # Polynomial time verifier | O(n^2)
     def isClique(vertices):
         for v1 in vertices:
             for v2 in vertices:
@@ -128,9 +109,6 @@ with open(file_name, "r") as file:
         return True
 
     def getAllSubsetsOfSizeK(arr, k):
-        if len(arr) <= k:
-            return arr.copy() if len(arr) == k else []
-
         main_res = set()
         def backtrack(i, arr, res, k):
             if len(res) == k:
@@ -171,35 +149,19 @@ with open(file_name, "r") as file:
         #     - Returns CLIQUE as comma-separated string (alphabetically ordered!)
         # Otherwise:
         #     - Returns 'None'
-        # for subset in getAllSubsetsOfSizeK(nodes, k):
-        #     if isClique(subset):
-        #         return ",".join(sorted(subset))
-        # return None
-        
-        # Getting all subsets of size k, and checking them all, is an insane waste of time & resources.
-        # Instead, we should loop through all of the nodes, and for each node, take every permutation of 
-        # k - 1 neighbors (if any) and check if they form a clique of size k!
-        for node in nodes:
-            for subset in getAllSubsetsOfSizeK(adj_list[node], k - 1):
-                # subset.append(node)
-                # Don't need to append node to subset, since it already has an edge to every node in there!
-                if isClique(subset):
-                    clique = sorted(list(subset) + [node])
-                    return ",".join(clique)
+        for subset in getAllSubsetsOfSizeK(nodes, k):
+            if isClique(subset):
+                return ",".join(sorted(subset))
         return None
 
     print(f"LINEAR SEARCH..")
     for k in range(3, len(nodes)):
         print(f"CLIQUE({k}) == {CLIQUE(k)}")
 
-    print("BINARY SEARCH...")
+    # print("BINARY SEARCH...")
     # We know k must be between 3, 16 inclusive. We want to essentially
     # find the rightmost True (i.e. not 'None' CLIQUE result!). We can
     # do this via rightmost binary search :)
-    # At this moment, I have discovered that EVERY SINGLE NODE has EXACTLY 13 outwards edges! This is obviously a huge thing to notice
-    # that will simplify this problem A LOT... since the MAXIMUM POSSIBLE CLIQUE SIZE is now 14!!!
-    assert len(indegrees) > 0 and min(indegrees.values()) == max(indegrees.values())
-    # l, r = 3, indegrees.values()[0] + 1
     l, r = 3, len(nodes)
     res = None
     while l <= r:
