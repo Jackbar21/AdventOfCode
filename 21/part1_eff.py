@@ -1,14 +1,8 @@
+from functools import cache
+
+
 USE_TEST_DATA = False
-
-# class MainRobot:
-
-
-# class MiddleRobot:
-
-# class RightRobot:
-
-# class Myself:
-    
+LEVELS_OF_INDIRECTION = 15
 
 file_name = "./data.txt" if not USE_TEST_DATA else "./test_data.txt"
 with open(file_name, "r") as file:
@@ -139,8 +133,54 @@ with open(file_name, "r") as file:
             path = robot_shortest_paths[(start_pos, symbol)]
             res.append(path)
             start_pos = symbol
-            print(f"{start_pos=}")
-        return "".join(res)
+        res = "".join(res)
+        print(f"{len(res)=}, {addLevelsOfIndirection(sequence, 1)}")
+        return res
+
+
+    def addLevelsOfIndirection(sequence, levels):
+        assert levels >= 0
+        if levels == 0:
+            return len(sequence)
+
+        res = 0
+        start_pos = "A"
+        for symbol in sequence:
+            # Instead of making the path larger and larger, we need to PREDICT what is going be the price we pay
+            # after applying 'levels' levels of indirection onto this symbol!
+            res += addLevelsOfIndirectionToSymbol(start_pos, symbol, levels)
+            # new_symbols = robot_shortest_paths[(start_pos, symbol)]
+            # res += addLevelsOfIndirection(new_symbols, )
+            start_pos = symbol
+        return res
+    
+    @cache
+    def addLevelsOfIndirectionToSymbol(start_symbol, dest_symbol, levels):
+        START_FROM_A = False
+        assert levels >= 0
+        if levels == 0:
+            return 1
+        
+        new_symbols = robot_shortest_paths[(start_symbol, dest_symbol)]
+        res = 0
+        # for symbol in new_symbols:
+        #     res += addLevelsOfIndirectionToSymbol(start_symbol, symbol, levels)
+        #     start_symbol = symbol
+        return addLevelsOfIndirection(new_symbols, levels - 1)
+
+        return sum(addLevelsOfIndirectionToSymbol(dest_symbol, new_symbol, levels - 1) for new_symbol in new_symbols)
+
+
+        if not START_FROM_A:
+            new_symbols = robot_shortest_paths[(start_symbol, dest_symbol)]
+            # return sum(addLevelsOfIndirection(new_symbol, levels - 1) for new_symbol in new_symbols)
+            return sum(addLevelsOfIndirection(dest_symbol, new_symbol, levels - 1) for new_symbol in new_symbols)
+        else:
+            new_symbols = robot_shortest_paths[("A", dest_symbol)]
+            # return sum(addLevelsOfIndirection(new_symbol, levels - 1) for new_symbol in new_symbols)
+            return sum(addLevelsOfIndirection("A", new_symbol, levels - 1) for new_symbol in new_symbols)
+        
+
 
     # level1 = plusOneLevelOfIndirection('<A^A>^^AvvvA')
     # print(f"{level1=}")
@@ -153,20 +193,46 @@ with open(file_name, "r") as file:
         "456A": "<v<A>>^AA<vA<A>>^AAvAA<^A>A<vA>^A<A>A<vA>^A<A>A<v<A>A>^AAvA<^A>A",
         "379A": "<v<A>>^AvA^A<vA<AA>>^AAvA<^A>AAvA^A<vA>^AA<A>A<v<A>A>^AAAvA<^A>A",
     }
+    # res = 0
+    # for key in d:
+    #     path = d[key] # level 1!
+    #     for i in range(2): # Already done first level of indirection via d!
+    #         path = plusOneLevelOfIndirection(path)
+    #         # print(f"level={i + 2}, {path[:20]=}")
+    #     if USE_TEST_DATA:
+    #         print(f"{key=}, {path == sol[key]}, {len(path)=}, path={path[:10]}...")
+    #     else:
+    #         print(f"{key=}, {len(path)=}, path={path[:10]}...")
+    #     numeric_part = int(''.join('' if c == 'A' else c for c in key))
+    #     # print(f"{numeric_part=}")
+    #     res += numeric_part * len(path)
+    
     res = 0
     for key in d:
-        path = d[key] # level 1!
-        for _ in range(3 - 1): # Already done first level of indirection via d!
-            path = plusOneLevelOfIndirection(path)
-        if USE_TEST_DATA:
-            print(f"{key=}, {path == sol[key]}, {len(path)=}, {path=}")
-        else:
-            print(f"{key=}, {len(path)=}, {path=}")
+        sequence = d[key]
         numeric_part = int(''.join('' if c == 'A' else c for c in key))
-        # print(f"{numeric_part=}")
-        res += numeric_part * len(path)
+        res += numeric_part * addLevelsOfIndirection(sequence, LEVELS_OF_INDIRECTION)
     
+    
+    # key = "379A" if USE_TEST_DATA else "169A"
+    # for key in d:
+    #     sequence = d[key]
+    #     cache_res = addLevelsOfIndirection(sequence, 2)
+    #     print(f"{key=}, {cache_res=}")
+    
+    
+    if res >= 149684280881054:
+        print(f"!!! WARNING: ANSWER IS WAY TOO HIGH !!!")
+        print(f"!!! WARNING: ANSWER IS WAY TOO HIGH !!!")
+        print(f"!!! WARNING: ANSWER IS WAY TOO HIGH !!!")
+
     print(f"ANSWER: {res}")
+    
+    if res >= 149684280881054:
+        print(f"!!! WARNING: ANSWER IS WAY TOO HIGH !!!")
+        print(f"!!! WARNING: ANSWER IS WAY TOO HIGH !!!")
+        print(f"!!! WARNING: ANSWER IS WAY TOO HIGH !!!")
+    # print(f"NEW ANSWER: {}")
 
 
 

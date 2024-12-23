@@ -1,4 +1,5 @@
 USE_TEST_DATA = False
+LEVELS_OF_INDIRECTION = 18
 
 # class MainRobot:
 
@@ -139,7 +140,6 @@ with open(file_name, "r") as file:
             path = robot_shortest_paths[(start_pos, symbol)]
             res.append(path)
             start_pos = symbol
-            print(f"{start_pos=}")
         return "".join(res)
 
     # level1 = plusOneLevelOfIndirection('<A^A>^^AvvvA')
@@ -156,12 +156,13 @@ with open(file_name, "r") as file:
     res = 0
     for key in d:
         path = d[key] # level 1!
-        for _ in range(3 - 1): # Already done first level of indirection via d!
+        for i in range(LEVELS_OF_INDIRECTION): # Already done first level of indirection via d!
             path = plusOneLevelOfIndirection(path)
+            # print(f"level={i + 2}, {path[:20]=}")
         if USE_TEST_DATA:
-            print(f"{key=}, {path == sol[key]}, {len(path)=}, {path=}")
+            print(f"{key=}, {path == sol[key]}, {len(path)=}, path={path[:10]}...")
         else:
-            print(f"{key=}, {len(path)=}, {path=}")
+            print(f"{key=}, {len(path)=}, path={path[:10]}...")
         numeric_part = int(''.join('' if c == 'A' else c for c in key))
         # print(f"{numeric_part=}")
         res += numeric_part * len(path)
