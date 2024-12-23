@@ -5,7 +5,7 @@ LEVELS_OF_INDIRECTION = 25
 
 file_name = "./data.txt" if not USE_TEST_DATA else "./test_data.txt"
 with open(file_name, "r") as file:
-    keys = [line.strip() for line in file.readlines()]
+    lines = [line.strip() for line in file.readlines()]
 
     door_shortest_paths = { # (FROM, TO)
         # A (DONE!)
@@ -223,7 +223,7 @@ with open(file_name, "r") as file:
         return sequences
 
     res = 0
-    for key in keys:
+    for key in lines:
         min_result = float("inf")
         for sequence in getAllSequencesFromKey(key):
             min_result = min(min_result, addLevelsOfIndirection(sequence, LEVELS_OF_INDIRECTION))
