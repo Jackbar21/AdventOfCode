@@ -11,12 +11,15 @@ with open(file_name, "r") as file:
 
     computers = set()
     adj_list = defaultdict(set)
+    degrees = defaultdict(int)
     for computer1, computer2 in lines:
         adj_list[computer1].add(computer2)
         adj_list[computer2].add(computer1)
         computers.add(computer1)
         computers.add(computer2)
-    
+        degrees[computer1] += 1
+        degrees[computer2] += 1
+
     # Turn everything into lists for convenience later (and sort cause why not hehe)!
     nodes = sorted(computers)
     for key in adj_list:
@@ -170,7 +173,9 @@ with open(file_name, "r") as file:
     # At this moment, I have discovered that EVERY SINGLE NODE has EXACTLY 13 outwards edges! This is obviously a huge thing to notice
     # that will simplify this problem A LOT... since the MAXIMUM POSSIBLE CLIQUE SIZE is now 14!!!
     start_time = time.time()
-    l, r = 3, len(nodes)
+    min_degree, max_degree = min(degrees.values()), max(degrees.values())
+    assert min_degree == max_degree # <-- NOT GENERALLY TRUE, just something I noticed for both test_data.txt and data.txt :)
+    l, r = 3, min(degrees.values()) + 1
     res = None
     while l <= r:
         mid = (l + r) // 2
@@ -187,3 +192,5 @@ with open(file_name, "r") as file:
     print(f"ANSWER: {res} | CLIQUE-SIZE: {r}")
     print(f"TIME: {time.time() - start_time} seconds!")
 
+# NP-Complete | O(2^n) solve | O(n^p) verify, where p is a positive integer
+# CLIQUE Decision Problem: Given a Graph G = (V, E), and a positive integer k <= |V|, determine if G contains a CLIQUE of size k
