@@ -6,7 +6,6 @@ USE_TEST_DATA = False
 file_name = "./data.txt" if not USE_TEST_DATA else "./test_data.txt"
 with open(file_name, "r") as file:
     lines = [line.strip().split("-") for line in file.readlines()]
-    # print(f"{lines=}")
 
     computers = set()
     adj_list = defaultdict(set)
