@@ -1,5 +1,8 @@
 USE_TEST_DATA = False
 
+from functools import cache
+import time
+
 file_name = "./data.txt" if not USE_TEST_DATA else "./test_data.txt"
 with open(file_name, "r") as file:
     lines = [int(line.strip()) for line in file.readlines()]
@@ -35,5 +38,7 @@ with open(file_name, "r") as file:
             secret_number = getNextSecretNumber(secret_number)
         return secret_number
 
+    start_time = time.time()
     res = sum(getKthSecretNumber(num, 2000) for num in lines)
     print(f"ANSWER: {res}")
+    print(f"TIME: {time.time() - start_time} seconds!")
