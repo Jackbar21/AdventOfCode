@@ -11,14 +11,11 @@ with open(file_name, "r") as file:
 
     computers = set()
     adj_list = defaultdict(set)
-    indegrees = defaultdict(int)
     for computer1, computer2 in lines:
         adj_list[computer1].add(computer2)
         adj_list[computer2].add(computer1)
         computers.add(computer1)
         computers.add(computer2)
-        indegrees[computer1] += 1
-        indegrees[computer2] += 1
     
     # Turn everything into lists for convenience later (and sort cause why not hehe)!
     nodes = sorted(computers)
@@ -109,16 +106,7 @@ with open(file_name, "r") as file:
     # Idea: Loop through every node (computer) in nodes, and for each node find the maximal CLIQUE that includes that node
     # For now, we'll only do it with a specific node.
 
-    
-    def findMaximalCLIQUE(node):
-        assert node in computers
-        clique = set(node)
-        for neighbor in adj_list[node]:
-            # Want to see if neighbor belongs in the CLIQUE. This is true if and only if,
-            # in the current clique that we're building, it forms an edge with every node currently in the clique.
-            pass
 
-    
     # Polynomial time verifier | O(n^2)
     def isClique(vertices):
         for v1 in vertices:
@@ -127,6 +115,7 @@ with open(file_name, "r") as file:
                     return False
         return True
 
+
     def getAllSubsetsOfSizeK(arr, k):
         if len(arr) <= k:
             return arr.copy() if len(arr) == k else []
@@ -134,9 +123,6 @@ with open(file_name, "r") as file:
         main_res = set()
         def backtrack(i, arr, res, k):
             if len(res) == k:
-                # main_res.append(res.copy())
-                # main_res.add(tuple(sorted(res)))
-                # NEED TO MAKE THIS YIELD RETURN!!!
                 new_case = tuple(sorted(res))
                 if new_case not in main_res:
                     main_res.add(new_case)
@@ -154,16 +140,8 @@ with open(file_name, "r") as file:
 
             # Case 2: Don't include element at index i
             yield from backtrack(i + 1, arr, res, k)
+
         yield from backtrack(0, arr, [], k)
-        # return main_res
-        # return
-    
-    start_time = time.time()
-    # print(f"{getAllSubsetsOfSizeK(nodes, 16)=}")
-    # k = 16 - 8
-    # for el in getAllSubsetsOfSizeK(nodes, k):
-    #     print(el)
-    # print(f"{k=}, {len(getAllSubsetsOfSizeK(nodes, k))=}")
 
 
     def CLIQUE(k):
@@ -171,41 +149,32 @@ with open(file_name, "r") as file:
         #     - Returns CLIQUE as comma-separated string (alphabetically ordered!)
         # Otherwise:
         #     - Returns 'None'
-        # for subset in getAllSubsetsOfSizeK(nodes, k):
-        #     if isClique(subset):
-        #         return ",".join(sorted(subset))
-        # return None
-        
+
         # Getting all subsets of size k, and checking them all, is an insane waste of time & resources.
         # Instead, we should loop through all of the nodes, and for each node, take every permutation of 
         # k - 1 neighbors (if any) and check if they form a clique of size k!
         for node in nodes:
             for subset in getAllSubsetsOfSizeK(adj_list[node], k - 1):
-                # subset.append(node)
                 # Don't need to append node to subset, since it already has an edge to every node in there!
                 if isClique(subset):
+                    # But if we do find a CLIQUE here, we do need to make sure to add the node to the result!!!
+                    # This mistake cost me a single failure on AoC part 2 submission :P
                     clique = sorted(list(subset) + [node])
                     return ",".join(clique)
         return None
 
-    print(f"LINEAR SEARCH..")
-    for k in range(3, len(nodes)):
-        print(f"CLIQUE({k}) == {CLIQUE(k)}")
 
-    print("BINARY SEARCH...")
     # We know k must be between 3, 16 inclusive. We want to essentially
     # find the rightmost True (i.e. not 'None' CLIQUE result!). We can
     # do this via rightmost binary search :)
     # At this moment, I have discovered that EVERY SINGLE NODE has EXACTLY 13 outwards edges! This is obviously a huge thing to notice
     # that will simplify this problem A LOT... since the MAXIMUM POSSIBLE CLIQUE SIZE is now 14!!!
-    assert len(indegrees) > 0 and min(indegrees.values()) == max(indegrees.values())
-    # l, r = 3, indegrees.values()[0] + 1
+    start_time = time.time()
     l, r = 3, len(nodes)
     res = None
     while l <= r:
         mid = (l + r) // 2
         clique = CLIQUE(mid)
-        print(f"{mid=}")
         if clique != None:
             # We have found a valid case! Now keep searching to the right for potentially larger
             # but ALSO valid cliques!!!
@@ -218,80 +187,3 @@ with open(file_name, "r") as file:
     print(f"ANSWER: {res} | CLIQUE-SIZE: {r}")
     print(f"TIME: {time.time() - start_time} seconds!")
 
-    
-
-
-
-    # def CLIQUE(k):
-    #     for subset in getAllSubsetsOfSizeK(nodes, k):
-    #         if isClique(subset):
-    #             return True
-    #     return False
-    #     # If there is a CLIQUE of size k:
-    #     #     - Returns CLIQUE as comma-separated string (alphabetically ordered!)
-    #     # Otherwise:
-    #     #     - Returns 'None'
-        
-    #     unvisited = computers.copy()
-    #     # def CLIQUE_HELPER(k):
-    #     #     for 
-    #     #     if k > 0:
-    #     #         assert len(unvisited) > 0
-    #     #         node = unvisited.pop()
-    #     #         nodes.add(node)
-    #     #         res = CLIQUE_HELPER(nodes, k - 1)
-    #     #         unvisited.add(node)
-
-    # unvisited = computers.copy()
-    # # print(f"{len(unvisited)=}, {unvisited=}")
-    # max_clique = float("-inf")
-    # CLIQUE = None
-    # while len(unvisited) > 0:
-    #     start_node = unvisited.pop()
-    #     # Perform a DFS/BFS from node, and get every other reachable node. These nodes are guaranteed to form a CLIQUE
-    #     # with one another, and be completely DISJOINT from every other node!
-    #     queue = collections.deque([start_node])
-    #     visited = set([start_node])
-    #     while len(queue) > 0: # BFS!
-    #         node = queue.popleft()
-    #         for neighbor in adj_list[node]:
-    #             if neighbor not in visited:
-    #                 visited.add(neighbor)
-    #                 queue.append(neighbor)
-    #     if len(visited) > max_clique:
-    #         max_clique = len(visited)
-    #         CLIQUE = ",".join(sorted(visited))
-    #     # print(f"{start_node=}, {len(visited)=} {max_clique=}, {CLIQUE=}, {visited=}, ")
-    #     unvisited = unvisited - visited # visited nodes can be ignored!
-
-    # print(f"ANSWER: {CLIQUE}, {max_clique}")
-
-    # n = len(nodes)
-    # res = 0
-    # for i in range(n):
-    #     # print(f"Progress: {i}/{n}...")
-    #     for j in range(i + 1, n):
-    #         for k in range(j + 1, n):
-                
-    #             a, b, c = nodes[i], nodes[j], nodes[k] # Computers!
-    #             if not any(computer.startswith("t") for computer in [a, b, c]):
-    #                 continue
-                
-    #             a_neighbors = adj_list[a]
-    #             b_neighbors = adj_list[b]
-    #             c_neighbors = adj_list[c]
-
-    #             if b not in a_neighbors or c not in a_neighbors:
-    #                 continue
-
-    #             if a not in b_neighbors or c not in b_neighbors:
-    #                 continue
-
-    #             if a not in c_neighbors or b not in c_neighbors:
-    #                 continue
-                
-    #             # Otherwise, at least one computer starts with a 't', and all three
-    #             # of them are interconnected! Hence, increment result by one :)
-    #             res += 1
-    
-    # # print(f"ANSWER: {res}")
