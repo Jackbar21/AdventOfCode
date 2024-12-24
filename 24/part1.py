@@ -12,8 +12,6 @@ file_name = (
 with open(file_name, "r") as file:
     lines = [line.strip() for line in file.readlines()]
     index = lines.index("")
-    # print(f"{lines[:index]=}")
-    # print(f"{lines[index+1:]=}")
     inputs, queries = lines[:index], lines[index + 1 :]
 
     d = {}
@@ -28,9 +26,6 @@ with open(file_name, "r") as file:
     for query in queries:
         q, result = query.split(" -> ")
         q = tuple(q.split(" "))
-        # if q in remaining:
-        #     print(f"DUPLICATE: {q=}")
-        # assert q not in remaining
         remaining[q].append(result)
         if result[0] == "z":
             assert result not in z_remaining
@@ -40,8 +35,6 @@ with open(file_name, "r") as file:
     # print(f"{remaining=}")
     # print(f"{z_remaining=}")
     res = sorted(z_remaining, reverse=True)
-    # exit()
-
     gate_solver = {
         "AND": lambda x, y: x & y,
         "XOR": lambda x, y: x ^ y,
