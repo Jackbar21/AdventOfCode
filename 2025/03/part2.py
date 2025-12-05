@@ -32,5 +32,4 @@ with open(file_name, "r") as file:
     for line in lines:
         res += int(solver(line, TOGGLE))
 
-    assert res
     print(f"ANSWER: {res}")
