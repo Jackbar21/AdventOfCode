@@ -16,7 +16,6 @@ with open(file_name, "r") as file:
                 index += 1
                 continue
 
-            # print(f"{prev_index=}, {index=}, {line[prev_index:index]=}")
             res.append(int(line[prev_index:index]))
             index += 1
             while index < len(line) and line[index] == " ":
