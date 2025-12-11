@@ -1,4 +1,4 @@
-USE_TEST_DATA = False
+USE_TEST_DATA = True
 PRINT_GRID = True  # For Debugging purposes, makes code extremely slow
 from collections import defaultdict, deque
 
@@ -34,29 +34,32 @@ with open(file_name, "r") as file:
     red_tiles_set = set(red_tiles)
     print(f"{len(red_tiles)=}")
 
-    # Get max X
-    d = defaultdict(list)
-    for x, y in red_tiles:
-        d[x].append(y)
-    MAX_X = max(d.keys())
+    # MAX_X, MAX_Y = max(x for x, y in red_tiles), max(y for x, y in red_tiles)
+    # print(f"{MAX_X=}, {MAX_Y=}")
 
-    # Get max Y
-    d = defaultdict(list)
-    for x, y in red_tiles:
-        d[y].append(x)
-    MAX_Y = max(d.keys())
+    # Coordinate compression (since flood-fill too slow otherwise)
+    def compress_coordinates(tiles):
+        unique_x = sorted(set(x for x, y in tiles))
+        unique_y = sorted(set(y for x, y in tiles))
+        x_map = {x: i for i, x in enumerate(unique_x)}
+        y_map = {y: i for i, y in enumerate(unique_y)}
+        compressed_tiles = [(x_map[x], y_map[y]) for x, y in tiles]
+        return compressed_tiles, unique_x, unique_y
 
-    print(f"{MAX_X=}, {MAX_Y=}")
+    # compressed_red_tiles, red_unique_x, red_unique_y = compress_coordinates(red_tiles)
+    # compressed_red_tiles_set = set(compressed_red_tiles)
 
-    def inBounds(x, y):
-        return 0 <= x <= MAX_X and 0 <= y <= MAX_Y
+    # # Max X and Y after compression
+    # MAX_X = len(red_unique_x) - 1
+    # MAX_Y = len(red_unique_y) - 1
+
+    # def inBounds(x, y):
+    #     return 0 <= x <= MAX_X and 0 <= y <= MAX_Y
 
     green_tiles = []
-    edges = []
     for i in range(len(red_tiles)):
         x1, y1 = red_tiles[i]
         x2, y2 = red_tiles[(i + 1) % len(red_tiles)]
-        edges.append(((x1, y1), (x2, y2)))
 
         assert (x1 == x2) or (y1 == y2), "Red tiles must form straight lines"
         assert (x1, y1) != (x2, y2)
@@ -71,74 +74,129 @@ with open(file_name, "r") as file:
                 if (x, y1) not in red_tiles_set:
                     green_tiles.append((x, y1))
 
-    green_tiles_set = set(green_tiles)
+    # compressed_green_tiles, unique_green_x, unique_green_y = compress_coordinates(
+    #     green_tiles
+    # )
+    # compressed_green_tiles_set = set(compressed_green_tiles)
+    print(f"{len(green_tiles)=}")
 
     red_and_green_tiles = red_tiles + green_tiles  # Doesn't include nested green tiles
-    red_and_green_tiles_set = set(red_and_green_tiles)
+    print(f"{len(red_and_green_tiles)=}")
+    compressed_red_and_green_tiles, unique_x, unique_y = compress_coordinates(
+        red_and_green_tiles
+    )
+    print(f"{len(compressed_red_and_green_tiles)=}")
+    compressed_red_and_green_tiles_set = set(compressed_red_and_green_tiles)
+    print(f"{len(compressed_red_and_green_tiles_set)=}")
+
+    x_map = {x: i for i, x in enumerate(unique_x)}
+    y_map = {y: i for i, y in enumerate(unique_y)}
+    compressed_red_tiles = [(x_map[x], y_map[y]) for x, y in red_tiles]
+    compressed_green_tiles = [(x_map[x], y_map[y]) for x, y in green_tiles]
+    # compressed_red_tiles = [
+    #     (unique_x.index(x), unique_y.index(y)) for x, y in red_tiles
+    # ]
+    # print(f"{len(compressed_red_tiles)=}")
+    # compressed_green_tiles = [
+    #     (unique_x.index(x), unique_y.index(y)) for x, y in green_tiles
+    # ]
+    # print(f"{len(compressed_green_tiles)=}")
+    compressed_red_tiles_set = set(compressed_red_tiles)
+    compressed_green_tiles_set = set(compressed_green_tiles)
 
     likely_inside_x = round(
-        sum(x for x, y in red_and_green_tiles) / len(red_and_green_tiles)
+        sum(x for x, y in compressed_red_and_green_tiles)
+        / len(compressed_red_and_green_tiles)
     )
+    print(f"Unique x length: {len(unique_x)}")
     likely_inside_y = round(
-        sum(y for x, y in red_and_green_tiles) / len(red_and_green_tiles)
+        sum(y for x, y in compressed_red_and_green_tiles)
+        / len(compressed_red_and_green_tiles)
     )
     assert (
         likely_inside_x,
         likely_inside_y,
-    ) not in red_and_green_tiles_set, (
+    ) not in compressed_red_and_green_tiles_set, (
         "Likely inside point cannot be an actual red or green tile"
     )
     print(f"Likely inside point: ({likely_inside_x}, {likely_inside_y})")
+
+    # red_and_green_tiles = red_tiles + green_tiles  # Doesn't include nested green tiles
+    # red_and_green_tiles_set = set(red_and_green_tiles)
+
+    # likely_inside_x = round(
+    #     sum(x for x, y in red_and_green_tiles) / len(red_and_green_tiles)
+    # )
+    # likely_inside_y = round(
+    #     sum(y for x, y in red_and_green_tiles) / len(red_and_green_tiles)
+    # )
+    # assert (
+    #     likely_inside_x,
+    #     likely_inside_y,
+    # ) not in red_and_green_tiles_set, (
+    #     "Likely inside point cannot be an actual red or green tile"
+    # )
+    # print(f"Likely inside point: ({likely_inside_x}, {likely_inside_y})")
 
     # Now, let's flood-fill from the likely inside point to find all nested green tiles
     queue = deque()
     queue.append((likely_inside_x, likely_inside_y))
     visited = set([(likely_inside_x, likely_inside_y)])
     DIRECTIONS = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+    MAX_X = len(unique_x) - 1
+    MAX_Y = len(unique_y) - 1
+
+    def inBounds(x, y):
+        return 0 <= x <= MAX_X and 0 <= y <= MAX_Y
+
     while queue:
         point = queue.popleft()
         assert (
-            point not in red_and_green_tiles_set
+            point not in compressed_red_and_green_tiles_set
         ), "Should not be visiting actual red or green tiles"
 
         # This will fail if likely inside point is out of bounds!
         # Which is great in verifying whether our solution is correct or not!
-        assert inBounds(*point) 
+        assert inBounds(*point)
 
         x, y = point
         for dx, dy in DIRECTIONS:
             nx, ny = x + dx, y + dy
             neighbor = (nx, ny)
-            if neighbor not in visited and neighbor not in red_and_green_tiles_set:
+            if (
+                neighbor not in visited
+                and neighbor not in compressed_red_and_green_tiles_set
+            ):
                 visited.add(neighbor)
                 queue.append(neighbor)
 
-    nested_green_tiles = list(visited)
-    nested_green_tiles_set = set(nested_green_tiles)
-    print(f"Found nested green tiles: {len(nested_green_tiles)=}")
+    compressed_nested_green_tiles = list(visited)
+    compressed_nested_green_tiles_set = set(compressed_nested_green_tiles)
+    print(f"Found nested green tiles: {len(compressed_nested_green_tiles)=}")
 
     def isNestedGreenTile(point):
-        return point in nested_green_tiles_set
+        return point in compressed_nested_green_tiles_set
 
     def isTile(point):
-        return point in red_and_green_tiles_set or isNestedGreenTile(point)
+        # return point in red_and_green_tiles_set or isNestedGreenTile(point)
+        return point in compressed_red_and_green_tiles_set or isNestedGreenTile(point)
 
     def printGridOnScreen():
         getSymbol = lambda point: (
             RED_TILE
-            if point in red_tiles_set
+            if point in compressed_red_tiles_set
             else (
                 GREEN_TILE
-                if point in red_and_green_tiles_set
+                if point in compressed_green_tiles_set
                 else NESTED_GREEN_TILE if isNestedGreenTile(point) else EMPTY
             )
         )
 
         grid = [[getSymbol((x, y)) for x in range(MAX_X + 2)] for y in range(MAX_Y + 2)]
         grid[likely_inside_y][likely_inside_x] = "!"  # Mark likely inside point
-        for x, y in red_tiles:
+        for x, y in compressed_red_tiles:
             grid[y][x] = RED_TILE
-        for x, y in green_tiles:
+        for x, y in compressed_green_tiles:
             grid[y][x] = GREEN_TILE
 
         print()
@@ -151,19 +209,22 @@ with open(file_name, "r") as file:
         printGridOnScreen()
 
     res = 0
-
     # Opposite corners chosen MUST be red tiles
-    for i in range(len(red_tiles)):
-        tile1 = red_tiles[i]
+    for i in range(len(compressed_red_tiles)):
+        tile1 = compressed_red_tiles[i]
         x1, y1 = tile1
-        for j in range(i + 1, len(red_tiles)):
-            tile2 = red_tiles[j]
+        for j in range(i + 1, len(compressed_red_tiles)):
+            tile2 = compressed_red_tiles[j]
             x2, y2 = tile2
 
             needed1 = (x1, y2)
             needed2 = (x2, y1)
             if isTile(needed1) and isTile(needed2):
-                size = getRectangleSize(tile1, tile2)
+                # size = getRectangleSize(tile1, tile2)
+                width = unique_x[max(x1, x2)] - unique_x[min(x1, x2)] + 1
+                height = unique_y[max(y1, y2)] - unique_y[min(y1, y2)] + 1
+                size = width * height
+
                 if res < size:
                     res = size
 
