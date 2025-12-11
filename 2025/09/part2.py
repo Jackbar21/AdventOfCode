@@ -1,231 +1,126 @@
-USE_TEST_DATA = True
-PRINT_GRID = True  # For Debugging purposes, makes code extremely slow
-from collections import defaultdict, deque
+USE_TEST_DATA = False
 
-# Restarting this problem on second day, since I realize I misread the problem.
-# The red tiles are given in a SPECIFIC order such that they are seperated by
-# straight lines the entire way through.
-
-# I am going to CHEESE the heck out of this problem.
-# First of all (let me cook here), if we can find a SINGULAR point
-# inside the polygon, then we're GOLDEN. Because then we can just
-# flood-fill from that point to find all the nested green tiles.
-# I'm having trouble using ray-casting to find a point inside the polygon,
-# although this video was helpful: https://www.youtube.com/watch?v=RSXM9bgqxJM
-# So instead, I'm gonna do something that's technically incorrect but likely
-# to work: which is I'm going to take the average of all the red tile coordinates
-# and use that as my likely "inside" point.
-
+# I spent two days on this problem, and eventually got frustrated and used AI help
+# to get a working solution. The key insight is to use the Ray Casting Algorithm
+# to determine if a point is inside the polygon formed by the red tiles.
 
 file_name = "./data.txt" if not USE_TEST_DATA else "./test_data.txt"
 with open(file_name, "r") as file:
     lines = [line.strip() for line in file.readlines()]
     lines = [tuple(map(int, line.split(","))) for line in lines]
+    red_tile_coords = lines
 
-    EMPTY, RED_TILE, GREEN_TILE = ".", "#", "o"
-    NESTED_GREEN_TILE = "_"
+    def is_inside(px, py, poly_coords):
+        """
+        Ray Casting Algorithm to determine if a point (px, py) is strictly inside
+        the polygon defined by poly_coords.
+        """
+        n = len(poly_coords)
+        is_in = False
 
-    def getRectangleSize(point1, point2):
-        x1, y1 = point1
-        x2, y2 = point2
-        return (abs(x1 - x2) + 1) * (abs(y1 - y2) + 1)
+        # Iterate over all segments (x1, y1) -> (x2, y2)
+        for i in range(n):
+            (x1, y1) = poly_coords[i]
+            (x2, y2) = poly_coords[(i + 1) % n]
 
-    red_tiles = lines
-    red_tiles_set = set(red_tiles)
-    print(f"{len(red_tiles)=}")
+            # Check if the horizontal ray from (px, py) intersects the segment
+            # Condition: The segment must straddle the ray's y-level (py)
+            # We must use strict inequalities to handle boundary cases correctly.
+            if (y1 <= py < y2) or (y2 <= py < y1):
+                # Calculate intersection x-coordinate (based on line equation)
+                x_intersect = x1 + (py - y1) / (y2 - y1) * (x2 - x1)
 
-    # MAX_X, MAX_Y = max(x for x, y in red_tiles), max(y for x, y in red_tiles)
-    # print(f"{MAX_X=}, {MAX_Y=}")
+                # If the intersection is to the right of the point, it's a valid crossing
+                if px < x_intersect:
+                    is_in = not is_in
+        return is_in
 
-    # Coordinate compression (since flood-fill too slow otherwise)
-    def compress_coordinates(tiles):
-        unique_x = sorted(set(x for x, y in tiles))
-        unique_y = sorted(set(y for x, y in tiles))
-        x_map = {x: i for i, x in enumerate(unique_x)}
-        y_map = {y: i for i, y in enumerate(unique_y)}
-        compressed_tiles = [(x_map[x], y_map[y]) for x, y in tiles]
-        return compressed_tiles, unique_x, unique_y
+    # 1. Coordinate Compression
+    x_coords = set(x for x, y in red_tile_coords)
+    y_coords = set(y for x, y in red_tile_coords)
 
-    # compressed_red_tiles, red_unique_x, red_unique_y = compress_coordinates(red_tiles)
-    # compressed_red_tiles_set = set(compressed_red_tiles)
+    sorted_x = sorted(list(x_coords))
+    sorted_y = sorted(list(y_coords))
 
-    # # Max X and Y after compression
-    # MAX_X = len(red_unique_x) - 1
-    # MAX_Y = len(red_unique_y) - 1
+    x_map = {x: i for i, x in enumerate(sorted_x)}
+    y_map = {y: i for i, y in enumerate(sorted_y)}
 
-    # def inBounds(x, y):
-    #     return 0 <= x <= MAX_X and 0 <= y <= MAX_Y
+    # W and H are the dimensions of the compressed *region* grid (cells, not lines)
+    W = len(sorted_x) - 1
+    H = len(sorted_y) - 1
 
-    green_tiles = []
-    for i in range(len(red_tiles)):
-        x1, y1 = red_tiles[i]
-        x2, y2 = red_tiles[(i + 1) % len(red_tiles)]
+    compressed_red = [(x_map[x], y_map[y]) for x, y in red_tile_coords]
 
-        assert (x1 == x2) or (y1 == y2), "Red tiles must form straight lines"
-        assert (x1, y1) != (x2, y2)
+    # 2. Identify Interior Regions (Compressed Cells) using Ray Casting
 
-        if x1 == x2:
-            for y in range(min(y1, y2) + 1, max(y1, y2)):
-                if (x1, y) not in red_tiles_set:
-                    green_tiles.append((x1, y))
-        else:
-            assert y1 == y2
-            for x in range(min(x1, x2) + 1, max(x1, x2)):
-                if (x, y1) not in red_tiles_set:
-                    green_tiles.append((x, y1))
+    # region_type[i][j] stores the type of the region defined by
+    # [sorted_x[i], sorted_x[i+1]) x [sorted_y[j], sorted_y[j+1])
+    # 1 = Interior (Green/Allowed), 2 = Exterior (Not Allowed)
+    region_type = [[0] * H for _ in range(W)]
 
-    # compressed_green_tiles, unique_green_x, unique_green_y = compress_coordinates(
-    #     green_tiles
-    # )
-    # compressed_green_tiles_set = set(compressed_green_tiles)
-    print(f"{len(green_tiles)=}")
+    for i in range(W):
+        for j in range(H):
+            # Use a test point strictly inside the region (e.g., +1 from the lower-left corner)
+            tx = sorted_x[i] + 1
+            ty = sorted_y[j] + 1
 
-    red_and_green_tiles = red_tiles + green_tiles  # Doesn't include nested green tiles
-    print(f"{len(red_and_green_tiles)=}")
-    compressed_red_and_green_tiles, unique_x, unique_y = compress_coordinates(
-        red_and_green_tiles
-    )
-    print(f"{len(compressed_red_and_green_tiles)=}")
-    compressed_red_and_green_tiles_set = set(compressed_red_and_green_tiles)
-    print(f"{len(compressed_red_and_green_tiles_set)=}")
+            if is_inside(tx, ty, red_tile_coords):
+                region_type[i][j] = 1  # Interior
+            else:
+                region_type[i][j] = 2  # Exterior
 
-    x_map = {x: i for i, x in enumerate(unique_x)}
-    y_map = {y: i for i, y in enumerate(unique_y)}
-    compressed_red_tiles = [(x_map[x], y_map[y]) for x, y in red_tiles]
-    compressed_green_tiles = [(x_map[x], y_map[y]) for x, y in green_tiles]
-    # compressed_red_tiles = [
-    #     (unique_x.index(x), unique_y.index(y)) for x, y in red_tiles
-    # ]
-    # print(f"{len(compressed_red_tiles)=}")
-    # compressed_green_tiles = [
-    #     (unique_x.index(x), unique_y.index(y)) for x, y in green_tiles
-    # ]
-    # print(f"{len(compressed_green_tiles)=}")
-    compressed_red_tiles_set = set(compressed_red_tiles)
-    compressed_green_tiles_set = set(compressed_green_tiles)
-
-    likely_inside_x = round(
-        sum(x for x, y in compressed_red_and_green_tiles)
-        / len(compressed_red_and_green_tiles)
-    )
-    print(f"Unique x length: {len(unique_x)}")
-    likely_inside_y = round(
-        sum(y for x, y in compressed_red_and_green_tiles)
-        / len(compressed_red_and_green_tiles)
-    )
-    assert (
-        likely_inside_x,
-        likely_inside_y,
-    ) not in compressed_red_and_green_tiles_set, (
-        "Likely inside point cannot be an actual red or green tile"
-    )
-    print(f"Likely inside point: ({likely_inside_x}, {likely_inside_y})")
-
-    # red_and_green_tiles = red_tiles + green_tiles  # Doesn't include nested green tiles
-    # red_and_green_tiles_set = set(red_and_green_tiles)
-
-    # likely_inside_x = round(
-    #     sum(x for x, y in red_and_green_tiles) / len(red_and_green_tiles)
-    # )
-    # likely_inside_y = round(
-    #     sum(y for x, y in red_and_green_tiles) / len(red_and_green_tiles)
-    # )
-    # assert (
-    #     likely_inside_x,
-    #     likely_inside_y,
-    # ) not in red_and_green_tiles_set, (
-    #     "Likely inside point cannot be an actual red or green tile"
-    # )
-    # print(f"Likely inside point: ({likely_inside_x}, {likely_inside_y})")
-
-    # Now, let's flood-fill from the likely inside point to find all nested green tiles
-    queue = deque()
-    queue.append((likely_inside_x, likely_inside_y))
-    visited = set([(likely_inside_x, likely_inside_y)])
-    DIRECTIONS = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-    MAX_X = len(unique_x) - 1
-    MAX_Y = len(unique_y) - 1
-
-    def inBounds(x, y):
-        return 0 <= x <= MAX_X and 0 <= y <= MAX_Y
-
-    while queue:
-        point = queue.popleft()
-        assert (
-            point not in compressed_red_and_green_tiles_set
-        ), "Should not be visiting actual red or green tiles"
-
-        # This will fail if likely inside point is out of bounds!
-        # Which is great in verifying whether our solution is correct or not!
-        assert inBounds(*point)
-
-        x, y = point
-        for dx, dy in DIRECTIONS:
-            nx, ny = x + dx, y + dy
-            neighbor = (nx, ny)
-            if (
-                neighbor not in visited
-                and neighbor not in compressed_red_and_green_tiles_set
-            ):
-                visited.add(neighbor)
-                queue.append(neighbor)
-
-    compressed_nested_green_tiles = list(visited)
-    compressed_nested_green_tiles_set = set(compressed_nested_green_tiles)
-    print(f"Found nested green tiles: {len(compressed_nested_green_tiles)=}")
-
-    def isNestedGreenTile(point):
-        return point in compressed_nested_green_tiles_set
-
-    def isTile(point):
-        # return point in red_and_green_tiles_set or isNestedGreenTile(point)
-        return point in compressed_red_and_green_tiles_set or isNestedGreenTile(point)
-
-    def printGridOnScreen():
-        getSymbol = lambda point: (
-            RED_TILE
-            if point in compressed_red_tiles_set
-            else (
-                GREEN_TILE
-                if point in compressed_green_tiles_set
-                else NESTED_GREEN_TILE if isNestedGreenTile(point) else EMPTY
-            )
-        )
-
-        grid = [[getSymbol((x, y)) for x in range(MAX_X + 2)] for y in range(MAX_Y + 2)]
-        grid[likely_inside_y][likely_inside_x] = "!"  # Mark likely inside point
-        for x, y in compressed_red_tiles:
-            grid[y][x] = RED_TILE
-        for x, y in compressed_green_tiles:
-            grid[y][x] = GREEN_TILE
-
-        print()
-        for row in grid:
-            print(" ".join(row))
-        print()
-
-    # Even if PRINT_GRID = True, only allow this in test mode -- since too slow otherwise
-    if PRINT_GRID and USE_TEST_DATA:
-        printGridOnScreen()
-
+    # 3. Find the Largest Valid Rectangle
     res = 0
-    # Opposite corners chosen MUST be red tiles
-    for i in range(len(compressed_red_tiles)):
-        tile1 = compressed_red_tiles[i]
-        x1, y1 = tile1
-        for j in range(i + 1, len(compressed_red_tiles)):
-            tile2 = compressed_red_tiles[j]
-            x2, y2 = tile2
+    num_red = len(compressed_red)
 
-            needed1 = (x1, y2)
-            needed2 = (x2, y1)
-            if isTile(needed1) and isTile(needed2):
-                # size = getRectangleSize(tile1, tile2)
-                width = unique_x[max(x1, x2)] - unique_x[min(x1, x2)] + 1
-                height = unique_y[max(y1, y2)] - unique_y[min(y1, y2)] + 1
-                size = width * height
+    # Iterate through all pairs of red tiles as opposite corners
+    for i in range(num_red):
+        for j in range(i + 1, num_red):
+            (x1_c, y1_c) = compressed_red[i]
+            (x2_c, y2_c) = compressed_red[j]
 
-                if res < size:
-                    res = size
+            # 3.1. Calculate Original Area
+            x_min_c, x_max_c = min(x1_c, x2_c), max(x1_c, x2_c)
+            y_min_c, y_max_c = min(y1_c, y2_c), max(y1_c, y2_c)
+
+            # The rectangle spans from one coordinate to the next.
+            x_start_orig = sorted_x[x_min_c]
+            x_end_orig = sorted_x[x_max_c]
+            y_start_orig = sorted_y[y_min_c]
+            y_end_orig = sorted_y[y_max_c]
+
+            # Width and Height are inclusive of both ends
+            width = x_end_orig - x_start_orig + 1
+            height = y_end_orig - y_start_orig + 1
+            area = width * height
+
+            if area <= res:
+                continue
+
+            # 3.2. Check Validity against Compressed Regions
+            is_valid_rectangle = True
+
+            # The rectangle covers compressed regions from x_min_c to x_max_c-1 and y_min_c to y_max_c-1
+            # We must check all *internal* regions covered by the rectangle.
+            for x_c in range(x_min_c, x_max_c):
+                for y_c in range(y_min_c, y_max_c):
+
+                    # Safety check: Ensure the region index is valid
+                    if not (0 <= x_c < W and 0 <= y_c < H):
+                        # If the rectangle extends beyond the polygon's bounding box
+                        # in a way that includes an undefined (exterior) region, it's invalid.
+                        is_valid_rectangle = False
+                        break
+
+                    # If a region covered by the rectangle is EXTERIOR (2), the rectangle is invalid.
+                    if region_type[x_c][y_c] == 2:
+                        is_valid_rectangle = False
+                        break
+                if not is_valid_rectangle:
+                    break
+
+            # 3.3. Update Max Area
+            if is_valid_rectangle:
+                res = max(res, area)
 
     print(f"ANSWER: {res}")
