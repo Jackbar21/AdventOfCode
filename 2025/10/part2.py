@@ -38,15 +38,12 @@ with open(file_name, "r") as file:
     #
     # And the objective is to minimize the sum of all ti, i.e. minimize t0 + t1 + t2 + t3 + t4 + t5
 
-    res = 0
-    for _, options, joltage_requirements in problems:
-        # We want to minimize the total number of button presses, while satisfying the joltage requirements
-
+    def lp_solver(options, joltage_requirements):
         # Step 1: Create variables
         vars = [LpVariable(f"t{i}", 0, cat="Integer") for i in range(len(options))]
 
         # Step 2: Create a problem
-        prob = LpProblem("Crop_Profit_Maximization", LpMinimize)
+        prob = LpProblem("MinButtonPresses", LpMinimize)
 
         # Step 3: Define objective
         prob += lpSum(vars)  # Minimize total button presses
@@ -64,6 +61,10 @@ with open(file_name, "r") as file:
         total_presses = sum(presses)
         if PRINT_OPTIMAL_SOLUTION_PER_PROBLEM:
             print(f"Button presses: {presses}, Total presses: {total_presses}")
-        res += total_presses
+        return total_presses
+
+    res = 0
+    for _, options, joltage_requirements in problems:
+        res += lp_solver(options, joltage_requirements)
 
     print(f"ANSWER: {res}")
